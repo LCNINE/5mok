@@ -1,14 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { signInSchema, SignInSchema } from "./schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { signUpSchema, SignUpSchema } from "./schema"; 
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -20,57 +14,43 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/supabase/client";
-import { Terminal } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Link, useNavigate } from "react-router-dom";
+import { Toast, ToastTitle, ToastDescription } from "@/components/ui/toast";
+import { useNavigate } from "react-router-dom";
 
-export default function SignInPage() {
+export default function SignUpPage() {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const form = useForm<SignInSchema>({
-    resolver: zodResolver(signInSchema),
+  const [error, setError] = useState<string | null>(null);
+  const form = useForm<SignUpSchema>({
+    resolver: zodResolver(signUpSchema),
   });
 
-  useEffect(() => {
-    async function checkSession() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setIsLoggedIn(true);
-        setTimeout(() => {
-          navigate("/");
-        }, 5000);
-      }
-    }
-    checkSession();
-  }, [navigate]);
-
-  async function onSubmit(values: SignInSchema) {
-    const { error } = await supabase.auth.signInWithPassword({
+  async function onSubmit(values: SignUpSchema) {
+    const { error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
     });
+
     if (error) {
-      console.error("로그인 에러:", error.message);
+      console.log("회원가입에러", error.message);
     } else {
-      navigate("/");
+      navigate("/auth/sign-in");
     }
   }
 
   return (
     <div className="w-screen min-h-screen max-w flex flex-col items-center justify-center bg-gray-50">
-      {isLoggedIn && (
-        <Alert className="mb-4 w-80" variant="destructive">
-          <Terminal className="h-4 w-4" />
-          <AlertTitle>이미 로그인된 상태입니다</AlertTitle>
-          <AlertDescription>메인 페이지로 이동합니다.</AlertDescription>
-        </Alert>
+    
+      {error && (
+        <Toast>
+          <ToastTitle>회원가입 실패</ToastTitle> 
+        </Toast>
       )}
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <Card className="w-80 bg-white border-orange-100">
             <CardHeader>
-              <CardTitle>로그인</CardTitle>
+              <CardTitle>회원가입</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
@@ -100,18 +80,33 @@ export default function SignInPage() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="passwordCheck"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>비밀번호 확인</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="password" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
             <CardFooter>
               <Button type="submit" className="flex-1">
-                로그인
+                회원가입
               </Button>
             </CardFooter>
           </Card>
         </form>
       </Form>
       <div className="mt-4 text-center">
-        <p>회원이 아니신가요? <span className="text-orange-600 cursor-pointer" onClick={() => navigate("/auth/sign-up")}>회원가입하기</span></p>
+        <p>이미 회원이신가요? <span className="text-orange-600 cursor-pointer" onClick={() => navigate("/auth/sign-in")}>로그인하기</span></p>
       </div>
+
     </div>
   );
 }
